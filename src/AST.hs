@@ -1,35 +1,59 @@
 module AST where
-import Text.Parsec.Prim
-import Data.Tree
-import Data.Tree.Zipper
+import Data.List
 import Data.String
-import PiCalculus
+import Data.Tree
+import Data.Stack
+import Data.Maybe
+import Data.Tuple
+--import qualified Data.Tree.Zipper as Z
 
-{---------}
-{- TYPES -}
-{---------}
+--AST type and related functions
+type AST = (Stack (Tree String), Tree String)
 
-data AST = [(Int, Forest String)]
+emptyAST :: AST
+emptyAST = (stackNew, Node "" [])
 
-{-----------------------}
-{- AUXILIARY FUNCTIONS -}
-{-----------------------}
+updateAST :: AST -> Tree String -> AST
+updateAST (x, y) tr = (x, tr)
 
--- intermediate tokenizer
-tokenizer :: Term -> [String]
-tokenizer x = words $ rectify $ show x
+addAST :: AST -> Tree String -> AST
+addAST (x, y) tr = (x, addTree y tr) 
+
+popAST :: AST -> Tree String -> AST
+popAST (x, y) tr = addAST (fromJust $ stackPop x) (snd $ addAST (x, y) tr)
+
+popAST' :: AST -> AST
+popAST' (x, y) = addAST (fromJust $ stackPop x) y
+
+pushAST :: AST -> Tree String -> AST
+pushAST (x, y) tr = (stackPush x y, tr)
+
+getTree :: AST -> Tree String
+getTree (x, y) = y
+
+--Functions on trees
+addTree :: Tree a -> Tree a -> Tree a --add tr2 to subforest of tr1
+addTree tr1 tr2 = Node (rootLabel tr1) (subForest tr1 ++ [tr2])
+
+--Core functions
+buildTree lst = foldl buildTree' emptyAST lst
    where
-      rectify = concatMap (\x -> if x == '(' then "( " else (if x == ')' then " )" else [x]))
+      buildTree' :: AST -> Tree String -> AST
+      buildTree' val tr
+         | has_both tr == True   = addAST val tr
+         | has_left tr == True   = pushAST val tr
+         | has_right tr == True  = popAST val tr
+         | rootLabel tr == ""    = updateAST val tr
+         | otherwise             = addAST val tr
+         where
+            has_both x = has_left x && has_right x
+            has_left x = elem '(' (rootLabel x)
+            has_right x = elem ')' (rootLabel x)
 
--- last tokenizer (consider fusing with the preceding function
-getTokens :: String -> [String]
-getTokens str = tokenizer $ fromRight TermErr (parse parseTerm "" str)
+prepString :: String -> Forest String
+prepString str = fmap (\x -> Node x []) (words str)
 
--- turn token list into Forest of singletons
-listToForest :: [a] -> Forest a
-listToForest xs = fmap (\x -> Node x []) xs
-
-{------------------}
-{- CORE FUNCTIONS -}
-{------------------}
-
+treeBuilder :: String -> Tree String
+treeBuilder str = fmap removeParens (getTree $ popAST' $ buildTree $ prepString str)
+   where
+      removeParens xs = filter (\x -> x `notElem` "()") xs

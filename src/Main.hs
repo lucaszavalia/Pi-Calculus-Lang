@@ -1,7 +1,12 @@
 module Main where
 import System.IO
-import Test
+import Text.Parsec.Prim
+import Data.Tree
+import Data.Either
+import PiCalculus
+import AST
 
 main :: IO ()
 main = do
-   putStrLn exportStr 
+   str <- getLine
+   putStrLn $ drawTree $ treeBuilder $ show $ (\(Right x) -> x) $ parse parseTerm "" str
