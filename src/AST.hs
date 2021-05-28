@@ -5,7 +5,7 @@ import Data.Tree
 import Data.Stack
 import Data.Maybe
 import Data.Tuple
---import qualified Data.Tree.Zipper as Z
+import PiCalculus
 
 --AST type and related functions
 type AST = (Stack (Tree String), Tree String)
@@ -23,7 +23,12 @@ popAST :: AST -> Tree String -> AST
 popAST (x, y) tr = addAST (fromJust $ stackPop x) (snd $ addAST (x, y) tr)
 
 popAST' :: AST -> AST
-popAST' (x, y) = addAST (fromJust $ stackPop x) y
+popAST' (x, y)  
+   | stackIsEmpty x == True   = (x, y)
+   | otherwise                = popAST' $ popAST'' (x, y)
+   where
+      popAST'' :: AST -> AST
+      popAST'' (x', y') = addAST (fromJust $ stackPop x') y'
 
 pushAST :: AST -> Tree String -> AST
 pushAST (x, y) tr = (stackPush x y, tr)
