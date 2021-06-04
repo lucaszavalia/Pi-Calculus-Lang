@@ -1,4 +1,4 @@
-module AST where
+module AST(treeBuilder) where
 import Data.List
 import Data.String
 import Data.Tree
@@ -48,7 +48,7 @@ buildTree lst = foldl buildTree' emptyAST lst
          | has_both tr == True   = addAST val tr
          | has_left tr == True   = pushAST val tr
          | has_right tr == True  = popAST val tr
-         | rootLabel tr == ""    = updateAST val tr
+         | snd val == Node "" [] = updateAST val tr
          | otherwise             = addAST val tr
          where
             has_both x = has_left x && has_right x
